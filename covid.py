@@ -46,3 +46,11 @@ def BuildValueTimelineByCounty(
 			raise Exception(f'unable to find cell for countyId: {countyId!r} date: {date!r}')
 		val = reportTable[i, statName]
 		outCell.val = val
+
+
+def AccumulateChannels(chop):
+	for chan in chop.chans():
+		counter = 0
+		for i in range(chop.numSamples):
+			counter += chan[i]
+			chan[i] = counter
