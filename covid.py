@@ -7,21 +7,6 @@ def PrepareCountyTable(dat, inDat):
 	dat.appendCol(['tx'] + inDat.col('X')[1:])
 	dat.appendCol(['ty'] + inDat.col('Y')[1:])
 
-
-def PrepareCountyStatsTable(dat, inDat, countyTable, dateTable):
-	dat.copy(inDat)
-	dat.appendCols([
-		['tx'],
-		['ty'],
-		['dateoffset'],
-	])
-	for i in range(1, dat.numRows):
-		countyId = dat[i, 'fips']
-		dat[i, 'tx'] = countyTable[countyId, 'tx']
-		dat[i, 'ty'] = countyTable[countyId, 'ty']
-		dat[i, 'dateoffset'] = dateTable[dat[i, 'date'], 'dateoffset']
-
-
 def PrepareDateTable(dat):
 	dat.appendCol(['dateoffset'])
 	firstDay = datetime.date.fromisoformat(dat[1, 'date'].val)
@@ -30,11 +15,11 @@ def PrepareDateTable(dat):
 		offset = day - firstDay
 		dat[i, 'dateoffset'] = offset.days
 
-def BuildTimeLinesPrimitiveTable(dat, statsTable):
+def BuildTimeLinesPrimitiveTable(dat, reportsTable):
 	dat.clear()
 	countyPoints = {}
-	for i in range(1, statsTable.numRows):
-		countyId = statsTable[i, 'countyid'].val
+	for i in range(1, reportsTable.numRows):
+		countyId = reportsTable[i, 'countyid'].val
 		if countyId in countyPoints:
 			countyPoints[countyId] += ' ' + str(i - 1)
 		else:
@@ -44,3 +29,20 @@ def BuildTimeLinesPrimitiveTable(dat, statsTable):
 		for points in countyPoints.values()
 	])
 
+def BuildValueTimelineByCounty(
+		dat,
+		countyTable,
+		reportTable,
+		dateTable,
+		statName):
+	dat.clear()
+	dat.appendRow(['countyid'] + dateTable.col('date')[1:])
+	dat.appendRows([[countyId] for countyId in countyTable.col('countyid')[1:]])
+	for i in range(1, reportTable.numRows):
+		countyId = reportTable[i, 'countyid'].val
+		date = reportTable[i, 'date'].val
+		outCell = dat[countyId, date]
+		if outCell is None:
+			raise Exception(f'unable to find cell for countyId: {countyId!r} date: {date!r}')
+		val = reportTable[i, statName]
+		outCell.val = val
